@@ -19,38 +19,50 @@ class FeedForward:
 
         self.activation = activations.select_activation(activation)
         
-        self.z = None
-        self.a = None
-        self.x = None
+        self.Z = None
+        self.A = None
+        self.X = None
 
 
-    def forward(self, x):
-        self.x = x
-        self.z = np.dot(self.W, x) + self.b
-        self.a = self.activation.activate(self.z)
-        return self.a
-
-    def backward(self, truth, lr=0.01, loss = "mle"):
+    def forward(self, X):
+        self.X = X
+        self.Z = np.dot(X, self.W.T) + self.b
+        self.A = self.activation.activate(self.Z)
+        return self.A
+    
+    def backward(self, truth, lr=0.01, loss="mse"):
         loss_fn = losses.select_loss(loss)
-        dLda = loss_fn.deriv(self.a, truth)
-        dadz = self.activation.deriv(self.z)
-        dLdW = np.outer(dLda * dadz , self.x)
-        dLdb = dLda * dadz * 1
+        
+        # Gradients w.r.t. output
+        dLdA = loss_fn.deriv(self.A, truth)  # Shape: (n, d_out)
+        dAdZ = self.activation.deriv(self.Z)  # Shape: (n, d_out)
+        dLdZ = dLdA * dAdZ  # Shape: (n, d_out)
+        
+        # Gradients w.r.t. weights and biases
+        dLdW = np.dot(dLdZ.T, self.X) / self.X.shape[0]  # Averaged over batch
+        dLdb = np.sum(dLdZ, axis=0) / self.X.shape[0]    # Sum over rows, then average
+        
+        print("Z before")
+        print(self.Z)
 
-        self.W = self.W - lr * dLdW
-        self.b = self.b - lr * dLdb
+        # Update parameters
+        self.W -= lr * dLdW
+        self.b -= lr * dLdb
+
+        print("Z after")
+        print(np.dot(self.X, self.W.T) + self.b)
 
 
 
 
 if __name__ == "__main__":
-    layer = FeedForward(input_size=4, output_size=3, weight_init="he", activation="sig")
-    truth = np.array([1,1,1])
-    input_data = np.array([1,2,3,4])
+    layer = FeedForward(input_size=4, output_size=3, weight_init="he", activation="relu")
+    truth = np.array([[1,1,1]])
+    input_data = np.array([[1,2,3,4]])
     lr = 0.1
     loss = "mse"
 
-    for i in range(100):
+    for i in range(3):
         result = layer.forward(input_data)
         print(result)
         layer.backward(truth,lr=lr, loss=loss)

@@ -8,7 +8,7 @@ def select_loss(loss="mse"):
 
 class MSE:
     def loss(self, prediction, truth):
-        return ((truth - prediction) ** 2).sum() / len(truth)
+        return ((truth - prediction) ** 2).mean()
 
     def deriv(self, prediction, truth):
-        return -2 * (truth - prediction) / len(prediction)
+        return -2 * (truth - prediction) / prediction.size
